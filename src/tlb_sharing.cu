@@ -35,7 +35,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <random>
+//#include <random>
 #include <string>
 
 #include <cuda_runtime.h>
@@ -84,31 +84,17 @@ static __global__ void tlb_latency_with_disruptor(unsigned int * hashtable, unsi
 #define CHECK_LAST(msg) {}
 #endif
 
-inline
-void throw_error(int code,
-                 const char* error_string,
-                 const char* msg,
-                 const char* func,
-                 const char* file,
-                 int line) {
-  throw std::runtime_error("CUDA error "
-                           +std::string(msg)
-                           +" "+std::string(error_string)
-                           +" ["+std::to_string(code)+"]"
-                           +" "+std::string(file)
-                           +":"+std::to_string(line)
-                           +" "+std::string(func)
-    );
-}
+
+using namespace std;
+
 inline
 void check_cuda(cudaError_t code, const char* msg, const char *func, const char *file, int line) {
-  if (code != cudaSuccess) {
-    throw_error(static_cast<int>(code),
-                cudaGetErrorString(code), msg, func, file, line);
+ if (code != cudaSuccess) {
+      cerr << "CUDA ERROR: " << cudaGetErrorString(code) << " in Line " << line << endl;;
+       exit(code);
   }
 }
 
-using namespace std;
 
 
 // --------------------------------- main part ------------------------------
