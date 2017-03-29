@@ -74,7 +74,7 @@ stride_kb * iterations < TLB but 2 * stride_kb * iterations > TLB
 output should be something like this:
 
 ```
-./sharing 2048 65
+./tlb-sharing 2048 65
 #Tesla K80: cuda 3.7
 #----------- absolute values ---------------
 # 0 1 2 3 4 5 6 7 8 9 10 11 12 
@@ -109,5 +109,11 @@ output should be something like this:
 ```
 
 # Publication
+
+The benchmark approach and results for the Nvidia K80 and P100 are described in:
+
+### Big Data causing Big (TLB) Problems: Taming Random Memory Accesses on the GPU
+Tomas Karnagel, Tal Ben-Nun, Matthias Werner, Dirk Habich, and Wolfgang Lehner
+Thirteenth International Workshop on Data Management on New Hardware (DaMoN 2017)
 
 ... will be referenced here soon ...
