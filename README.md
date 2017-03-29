@@ -113,7 +113,7 @@ output should be something like this:
 The benchmark approach and results for the Nvidia K80 and P100 are described in:
 
 ### Big Data causing Big (TLB) Problems: Taming Random Memory Accesses on the GPU
-Tomas Karnagel, Tal Ben-Nun, Matthias Werner, Dirk Habich, and Wolfgang Lehner
+Tomas Karnagel, Tal Ben-Nun, Matthias Werner, Dirk Habich, and Wolfgang Lehner -- 
 Thirteenth International Workshop on Data Management on New Hardware (DaMoN 2017)
 
 ... will be referenced here soon ...
