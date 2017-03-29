@@ -20,7 +20,7 @@ make -j 2
 
 It generates device codes for common Nvidia GPU architectures starting with Kepler architecture. If you know your architecture, just edit src/CMakeLists.txt.
 
-## Usage
+## tlb-bench Usage
 
 ```
 $ ./tlb-bench 
@@ -35,7 +35,7 @@ usage: ./tlb-bench data_from_MB data_to_MB stride_from_KB stride_to_KB Device_No
 ./tlb-bench 1500 5000 1024 4096
 ```
 
-### Plotting needs R - generated a pdf file
+### Plotting needs R - generates a pdf file
 
 ```
 cd supplemental/
@@ -55,7 +55,7 @@ Kepler and Pascal GPUs seem to work fine but we had some issues getting good res
 
 # TLB Sharing
 
-## TLBsharing usage
+## tlb-sharing usage
 
 ```
 ./tlb-sharing 
@@ -108,6 +108,6 @@ output should be something like this:
 12 .. .. .. .. .X .. .. .. .. .X .. .. .X 
 ```
 
-## Known effects
+# Publication
 
-As you can see, not all SMs have 2 partners to share the L2 TLB with (L2 TLB is shared by 3 SMs for the K80). The GPU is meant for 15 SMs but only 13 are enabled, that means that either two times one TLB is shared by only 2 SMs (2 2 3 3 3) or one TLB is only used by one SM (1 3 3 3 3). For the P100, there are 56 SMs enabled but 60 SMs are on the chip, so 4 sharing partners are missing. 
+... will be referenced here soon ...
