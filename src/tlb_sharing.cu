@@ -57,7 +57,7 @@ static __global__ void tlb_latency_with_disruptor(unsigned int * hashtable, unsi
     return;
   unsigned long start;
   unsigned int sum = 0;
-	unsigned int pos = DISRUPT ? (stride_count*iterations + offset) % hashtable_count : offset;
+    unsigned int pos = DISRUPT ? (stride_count*iterations + offset) % hashtable_count : offset;
   sum += pos; // ensure pos is set before entering loop
   for (unsigned int i = 0; i < iterations; i++){
     start = clock64();
@@ -100,151 +100,151 @@ void check_cuda(cudaError_t code, const char* msg, const char *func, const char 
 // --------------------------------- main part ------------------------------
 int main(int argc, char **argv)
 {
-	unsigned int devNo = 0;
-	
- 	// ------------- handle inputs ------------
- 	 
-  	if (argc < 3) {
-  		cout << "usage: " << argv[0] << " stride_KB iterations device_No=0" << endl;
-  		return 0;
-  	}	
+    unsigned int devNo = 0;
+    
+     // ------------- handle inputs ------------
+      
+      if (argc < 3) {
+          cout << "usage: " << argv[0] << " stride_KB iterations device_No=0" << endl;
+          return 0;
+      }    
 
-  	int stride_KB = atoi(argv[1]);
-  	int iterations = atoi(argv[2]);
+      int stride_KB = atoi(argv[1]);
+      int iterations = atoi(argv[2]);
 
-	if (argc > 3)
-		devNo = atoi(argv[3]);
+    if (argc > 3)
+        devNo = atoi(argv[3]);
 
-	
-	// --------------- init CUDA ---------
-	int devCount;
+    
+    // --------------- init CUDA ---------
+    int devCount;
     int SMcount =  0;
     CHECK_CUDA(cudaGetDeviceCount(&devCount));
     
     // check Dev Count
     if (devNo >= devCount){
-    	cout << "Can not choose Dev " << devNo << ", only " << devCount << " GPUs " << endl;
-    	exit(0);
+        cout << "Can not choose Dev " << devNo << ", only " << devCount << " GPUs " << endl;
+        exit(0);
     }
-   	CHECK_CUDA(cudaSetDevice(devNo));
-   	 
+       CHECK_CUDA(cudaSetDevice(devNo));
+        
     cudaDeviceProp props;
     CHECK_CUDA(cudaGetDeviceProperties(&props, devNo));
     cout << "#" << props.name << ": cuda " << props.major << "." << props.minor << endl;
-  	SMcount = props.multiProcessorCount;
+      SMcount = props.multiProcessorCount;
 
 
-	// --------------- setup input data ---------
-	  size_t hashtable_size_MB = ((iterations+1) * stride_KB * 2) / 1024;
-	
-	
-	  CHECK_CUDA(cudaDeviceReset());
-	  
-	  unsigned int * hashtable;
-	  unsigned* hduration = new unsigned [iterations];
-	  size_t N = hashtable_size_MB*1048576llu/sizeof(unsigned int);
-	 
-	  CHECK_CUDA(cudaMalloc(&hashtable, hashtable_size_MB*1048576llu+(iterations+2llu)*sizeof(unsigned int)));
-	  
-	  // init data
-	  unsigned int* hdata = new unsigned int[N+1];
-	  size_t stride_count = stride_KB*1024llu/sizeof(unsigned);
-	  for(size_t t=0; t<N; ++t) {
-	    hdata[t] = ( t+stride_count ) % N;
-	  }
-	  hdata[N] = 0;
-	  CHECK_CUDA(cudaMemcpy(hashtable, hdata, (N+1)*sizeof(unsigned), cudaMemcpyHostToDevice));
-	  delete[] hdata;
+    // --------------- setup input data ---------
+      size_t hashtable_size_MB = ((iterations+1) * stride_KB * 2) / 1024;
+    
+    
+      CHECK_CUDA(cudaDeviceReset());
+      
+      unsigned int * hashtable;
+      unsigned* hduration = new unsigned [iterations];
+      size_t N = hashtable_size_MB*1048576llu/sizeof(unsigned int);
+     
+      CHECK_CUDA(cudaMalloc(&hashtable, hashtable_size_MB*1048576llu+(iterations+2llu)*sizeof(unsigned int)));
+      
+      // init data
+      unsigned int* hdata = new unsigned int[N+1];
+      size_t stride_count = stride_KB*1024llu/sizeof(unsigned);
+      for(size_t t=0; t<N; ++t) {
+        hdata[t] = ( t+stride_count ) % N;
+      }
+      hdata[N] = 0;
+      CHECK_CUDA(cudaMemcpy(hashtable, hdata, (N+1)*sizeof(unsigned), cudaMemcpyHostToDevice));
+      delete[] hdata;
 
-	  // alloc output space
-	  double ** results = new double * [SMcount];
-		for(int i = 0; i < SMcount; ++i){
-	    	results[i] = new double[SMcount];
-	    	memset(results[i], 0, sizeof(double) * SMcount);
-	    }
-	
-	
+      // alloc output space
+      double ** results = new double * [SMcount];
+        for(int i = 0; i < SMcount; ++i){
+            results[i] = new double[SMcount];
+            memset(results[i], 0, sizeof(double) * SMcount);
+        }
+    
+    
     // --------------- test all SMx to SMy combinations ---------
 
-  		for (int smid0 = 0; smid0 < SMcount; smid0++){
-  			for  (int smxxx = 0; smxxx < SMcount; smxxx++) {
+          for (int smid0 = 0; smid0 < SMcount; smid0++){
+              for  (int smxxx = 0; smxxx < SMcount; smxxx++) {
 
-			  CHECK_CUDA(cudaDeviceSynchronize());
-				
-			  // fill TLB					
-			  tlb_latency_with_disruptor<false, false><<<2*SMcount, 1, iterations*sizeof(unsigned)>>>(hashtable, N,  iterations, stride_count, 0, smid0,smxxx);
-			  
-			  // disrupt TLB if TLB is shared
-			  tlb_latency_with_disruptor<true, false><<<2*SMcount, 1, iterations*sizeof(unsigned)>>>(hashtable, N,  iterations, stride_count, 0, smid0,smxxx);
-			  
-			  // check if values in TLB
-			  tlb_latency_with_disruptor<false, true><<<2*SMcount, 1, iterations*sizeof(unsigned)>>>(hashtable, N,  iterations, stride_count, 0, smid0,smxxx);
-			 
-			 
-			  CHECK_LAST( "Kernel failed." );
-			  CHECK_CUDA(cudaDeviceSynchronize());
-	
-			
-			  // get needed cycles
-			  CHECK_CUDA(cudaMemcpy(hduration, hashtable+N+2, iterations*sizeof(unsigned), cudaMemcpyDeviceToHost));
-					
-			  double avgc=0;
-			  for(int b=0; b<iterations;++b) {
-			    avgc+=hduration[b];
-			  }
-			  results[smid0][smxxx] =  avgc;
-  		}
-  	}
-	
-	CHECK_CUDA(cudaFree(hashtable));
-  	delete[] hduration;
-	
+              CHECK_CUDA(cudaDeviceSynchronize());
+                
+              // fill TLB                    
+              tlb_latency_with_disruptor<false, false><<<2*SMcount, 1, iterations*sizeof(unsigned)>>>(hashtable, N,  iterations, stride_count, 0, smid0,smxxx);
+              
+              // disrupt TLB if TLB is shared
+              tlb_latency_with_disruptor<true, false><<<2*SMcount, 1, iterations*sizeof(unsigned)>>>(hashtable, N,  iterations, stride_count, 0, smid0,smxxx);
+              
+              // check if values in TLB
+              tlb_latency_with_disruptor<false, true><<<2*SMcount, 1, iterations*sizeof(unsigned)>>>(hashtable, N,  iterations, stride_count, 0, smid0,smxxx);
+             
+             
+              CHECK_LAST( "Kernel failed." );
+              CHECK_CUDA(cudaDeviceSynchronize());
+    
+            
+              // get needed cycles
+              CHECK_CUDA(cudaMemcpy(hduration, hashtable+N+2, iterations*sizeof(unsigned), cudaMemcpyDeviceToHost));
+                    
+              double avgc=0;
+              for(int b=0; b<iterations;++b) {
+                avgc+=hduration[b];
+              }
+              results[smid0][smxxx] =  avgc;
+          }
+      }
+    
+    CHECK_CUDA(cudaFree(hashtable));
+      delete[] hduration;
+    
  
     // ---------------output handling ---------
  
-	cout << "#----------- absolute values ---------------" << endl;
+    cout << "#----------- absolute values ---------------" << endl;
  
- 	cout << "# ";
-	for (unsigned int steps = 0; steps < SMcount; steps++)
-		cout << steps << " ";
-	cout << endl;	
-	
-	for(unsigned int y = 0; y < SMcount; y++){
-		cout << y << " ";
-		for(unsigned int x = 0; x < SMcount; x++){
-			cout << (unsigned int) (results[y][x]/iterations);
-			cout << " ";
-		}
-		cout << endl;
-	}
-	
-	cout << "#----------- which SMs share TLB ---------------" << endl;
-	
-	cout << "# ";
-	for (unsigned int steps = 0; steps < SMcount; steps++)
-		cout << steps << " ";
-	cout << endl;	
-	
-	for(unsigned int y = 0; y < SMcount; y++){
-		cout << y << " ";
-		
-		double avg = 0;
-		for(unsigned int x = 0; x < SMcount; x++)
-			avg += (results[y][x]/iterations);
-		// build average and add some buffer
-		avg = (avg / SMcount)+3;
-		
-		
-	//	cout << avg << endl;
-				
-		for(unsigned int x = 0; x < SMcount; x++){
-			if (results[y][x]/iterations > avg) cout << ".X ";
-			else cout << ".. ";
-		}
-		cout << endl;
-	}
+     cout << "# ";
+    for (unsigned int steps = 0; steps < SMcount; steps++)
+        cout << steps << " ";
+    cout << endl;    
+    
+    for(unsigned int y = 0; y < SMcount; y++){
+        cout << y << " ";
+        for(unsigned int x = 0; x < SMcount; x++){
+            cout << (unsigned int) (results[y][x]/iterations);
+            cout << " ";
+        }
+        cout << endl;
+    }
+    
+    cout << "#----------- which SMs share TLB ---------------" << endl;
+    
+    cout << "# ";
+    for (unsigned int steps = 0; steps < SMcount; steps++)
+        cout << steps << " ";
+    cout << endl;    
+    
+    for(unsigned int y = 0; y < SMcount; y++){
+        cout << y << " ";
+        
+        double avg = 0;
+        for(unsigned int x = 0; x < SMcount; x++)
+            avg += (results[y][x]/iterations);
+        // build average and add some buffer
+        avg = (avg / SMcount)+3;
+        
+        
+    //    cout << avg << endl;
+                
+        for(unsigned int x = 0; x < SMcount; x++){
+            if (results[y][x]/iterations > avg) cout << ".X ";
+            else cout << ".. ";
+        }
+        cout << endl;
+    }
 
  
   CHECK_CUDA(cudaDeviceReset());
-	return 0;
+    return 0;
 }
