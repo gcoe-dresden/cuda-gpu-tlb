@@ -37,8 +37,8 @@
 using namespace std;
 
 
-
 // --------------------------------- GPU Kernel ------------------------------
+
 static __global__ void TLBtester(unsigned int * data, unsigned int iterations)
 {
 
@@ -80,13 +80,13 @@ static __global__ void TLBtester(unsigned int * data, unsigned int iterations)
 // --------------------------------- support functions ------------------------------
 
 // check Errors
-#define checkCuda(x) { gpuAssert((x), __LINE__); }
+#define CHECK_CUDA(x) { gpuAssert((x), __LINE__); }
 inline void gpuAssert(cudaError_t code, int line)
 {   
     if (code != cudaSuccess) {
-      cerr << "CUDA ERROR: " << cudaGetErrorString(code) << " in Line " << line << endl;;
-       exit(code);
-       }
+        cerr << "CUDA ERROR: " << cudaGetErrorString(code) << " in Line " << line << endl;
+        exit(code);
+    }
 }
 
 // initialize data with the positions of the next entries - stride walks
@@ -105,7 +105,7 @@ unsigned int getNextPowerOfTwo (unsigned int x)
     unsigned int powerOfTwo = 1;
     
     while (powerOfTwo < x && powerOfTwo < 2147483648)
-       powerOfTwo *= 2;
+        powerOfTwo *= 2;
      
     return powerOfTwo;
 }
@@ -125,38 +125,38 @@ int main(int argc, char **argv)
         return 0;
     }
      
-     float dataFromMB = atof(argv[1]);
-     float dataToMB = atof(argv[2]);
-     unsigned int tmpFrom = atoi(argv[3]);
-     unsigned int tmpTo =atoi(argv[4]);
-     if (argc > 5)
-         unsigned int devNo =atoi(argv[5]);
+    float dataFromMB = atof(argv[1]);
+    float dataToMB = atof(argv[2]);
+    unsigned int tmpFrom = atoi(argv[3]);
+    unsigned int tmpTo =atoi(argv[4]);
+    if (argc > 5)
+        unsigned int devNo =atoi(argv[5]);
 
     // ------------- round inputs to power of twos ------------
      
-     unsigned int strideFromKB = getNextPowerOfTwo(tmpFrom);
-     unsigned int strideToKB = getNextPowerOfTwo(tmpTo);
+    unsigned int strideFromKB = getNextPowerOfTwo(tmpFrom);
+    unsigned int strideToKB = getNextPowerOfTwo(tmpTo);
 
     if (tmpFrom != strideFromKB) cout << "strideFrom: " << tmpFrom << " not power of two, I take " << strideFromKB << endl;
     if (tmpTo != strideToKB) cout << "strideTo: "<< tmpTo << " not power of two, I take " << strideToKB << endl;
      
-     if (strideToKB < strideFromKB) {
-         unsigned int tmp = strideToKB;
-         strideToKB =strideFromKB;
-         strideFromKB = tmp;
-     }
+    if (strideToKB < strideFromKB) {
+        unsigned int tmp = strideToKB;
+        strideToKB =strideFromKB;
+        strideFromKB = tmp;
+    }
      
-     unsigned int divisionTester = ((unsigned int)(dataFromMB * 1024))/ strideToKB ;
-     if ( divisionTester * strideToKB != (unsigned int)(dataFromMB * 1024) ) dataFromMB = (divisionTester * strideToKB) / 1024;
+    unsigned int divisionTester = ((unsigned int)(dataFromMB * 1024))/ strideToKB ;
+    if ( divisionTester * strideToKB != (unsigned int)(dataFromMB * 1024) ) dataFromMB = (divisionTester * strideToKB) / 1024;
 
-     divisionTester = ((unsigned int)(dataToMB * 1024))/ strideToKB ;
-     if ( divisionTester * strideToKB != (unsigned int)(dataToMB * 1024) ) dataToMB = (divisionTester * strideToKB) / 1024;
+    divisionTester = ((unsigned int)(dataToMB * 1024))/ strideToKB ;
+    if ( divisionTester * strideToKB != (unsigned int)(dataToMB * 1024) ) dataToMB = (divisionTester * strideToKB) / 1024;
      
-     if (dataToMB < dataFromMB){
-         float tmp = dataFromMB;
-         dataFromMB = dataToMB;
-         dataToMB = tmp;
-     }
+    if (dataToMB < dataFromMB){
+        float tmp = dataFromMB;
+        dataFromMB = dataToMB;
+        dataToMB = tmp;
+    }
      
     cout << "#testing: from " << dataFromMB << "MB to " << dataToMB << "MB, in strides from " <<  strideFromKB << "KB to " << strideToKB << "KB -- " << iterations << " iterations" << endl;
     
@@ -178,10 +178,10 @@ int main(int argc, char **argv)
      
     // ------------- setup Cuda and Input data and result data ------------    
      
-     size_t sizeMB = dataToMB+1;
+    size_t sizeMB = dataToMB+1;
         
     int devCount;
-    checkCuda(cudaGetDeviceCount(&devCount));
+    CHECK_CUDA(cudaGetDeviceCount(&devCount));
     
     // check Dev Count
     if (devNo >= devCount){
@@ -190,17 +190,17 @@ int main(int argc, char **argv)
     }
     
     cudaDeviceProp props;
-    checkCuda(cudaGetDeviceProperties(&props, devNo));
+    CHECK_CUDA(cudaGetDeviceProperties(&props, devNo));
     cout << "#" << props.name << ": cuda " << props.major << "." << props.minor << endl;
-      output << "#" << props.name << ": cuda " << props.major << "." << props.minor << endl;
+    output << "#" << props.name << ": cuda " << props.major << "." << props.minor << endl;
 
-    checkCuda(cudaSetDevice(devNo));
+    CHECK_CUDA(cudaSetDevice(devNo));
 
     unsigned int * hostData = new unsigned int[sizeMB * 1024 * 1024 / sizeof(unsigned int)];
         
     unsigned int * data;
-    checkCuda(cudaMalloc(&data, sizeMB * 1024 * 1024));
-    checkCuda(cudaMemset(data, 0, sizeMB * 1024 * 1024));
+    CHECK_CUDA(cudaMalloc(&data, sizeMB * 1024 * 1024));
+    CHECK_CUDA(cudaMemset(data, 0, sizeMB * 1024 * 1024));
     
     // alloc space for results.
     unsigned int** results = new unsigned int*[stepsNo];
@@ -224,12 +224,12 @@ int main(int argc, char **argv)
             initSteps(hostData, (sizeMB/sizeof(int)) * 1024 * 1024, steps);
             
             // copy data
-            checkCuda(cudaMemcpy(data, hostData, sizeMB * 1024 * 1024, cudaMemcpyHostToDevice));
-            checkCuda(cudaThreadSynchronize());    
+            CHECK_CUDA(cudaMemcpy(data, hostData, sizeMB * 1024 * 1024, cudaMemcpyHostToDevice));
+            CHECK_CUDA(cudaThreadSynchronize());
             
             // run it once to initialize all pages (over full data size)
             TLBtester<<<1, 1>>>(data,  (unsigned int)  ((sizeMB*1024 / steps)-5));
-            checkCuda(cudaThreadSynchronize());    
+            CHECK_CUDA(cudaThreadSynchronize());
             
             unsigned int indexY = 0;    
             // run test for all steps of this stride
@@ -238,17 +238,17 @@ int main(int argc, char **argv)
                 
                 // warmup and initialize TLB
                 TLBtester<<<1, 1>>>(data, i);
-                checkCuda(cudaThreadSynchronize());
+                CHECK_CUDA(cudaThreadSynchronize());
 
                 // real test
                 TLBtester<<<1, 1>>>(data, i);
-                checkCuda(cudaThreadSynchronize());    
+                CHECK_CUDA(cudaThreadSynchronize());
                             
                 unsigned int myResult = 0;
             
                 // find our result position:
                 unsigned int pos =  ((steps) / sizeof(int) * 1024 * (i-1))+1;
-                checkCuda(cudaMemcpy(&myResult, data+pos, sizeof(unsigned int), cudaMemcpyDeviceToHost));
+                CHECK_CUDA(cudaMemcpy(&myResult, data+pos, sizeof(unsigned int), cudaMemcpyDeviceToHost));
                 
                 // write result at the right csv position
                 results[ indexY ][ indexX ] += myResult;
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
     }
     
     // cleanup
-    checkCuda(cudaFree(data));
+    CHECK_CUDA(cudaFree(data));
     delete hostData;
 
     // ------------------------------------ CSV output --------------------------
@@ -288,8 +288,8 @@ int main(int argc, char **argv)
     // cleanup
     for(int i = 0; i < stepsNo; ++i)
         delete[] results[i]; 
+
     delete[] results;
 
-
-return 0;
+    return 0;
 }
