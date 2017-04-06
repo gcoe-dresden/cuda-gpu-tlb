@@ -18,8 +18,6 @@ cmake ..
 make -j 2
 ```
 
-It generates device codes for common Nvidia GPU architectures starting with Kepler architecture. If you know your architecture, just edit src/CMakeLists.txt.
-
 ## tlb-bench Usage
 
 ```
@@ -66,7 +64,7 @@ try:
 
 - stride_KB = page_size  and 
 - iteration = #entries
-- choose the parameters that (otherwise you wont see the wanted effects):
+- choose the parameters that (otherwise you will not see the wanted effects):
 ```
 stride_kb * iterations < TLB but 2 * stride_kb * iterations > TLB
 ```
@@ -113,6 +111,7 @@ output should be something like this:
 The benchmark approach and results for the Nvidia K80 and P100 are described in:
 
 ### Big Data causing Big (TLB) Problems: Taming Random Memory Accesses on the GPU
+
 Tomas Karnagel, Tal Ben-Nun, Matthias Werner, Dirk Habich, and Wolfgang Lehner -- 
 Thirteenth International Workshop on Data Management on New Hardware (DaMoN 2017)
 
