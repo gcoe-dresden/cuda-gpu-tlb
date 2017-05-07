@@ -115,4 +115,4 @@ The benchmark approach and results for the Nvidia K80 and P100 are described in:
 Tomas Karnagel, Tal Ben-Nun, Matthias Werner, Dirk Habich, and Wolfgang Lehner -- 
 Thirteenth International Workshop on Data Management on New Hardware (DaMoN 2017)
 
-... will be referenced here soon ...
+http://dx.doi.org/10.1145/3076113.3076115
