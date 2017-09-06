@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <iostream>
+#include <limits>
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -206,7 +207,7 @@ int main(int argc, char **argv)
     unsigned int** results = new unsigned int*[stepsNo];
     for(int i = 0; i < stepsNo; ++i){
         results[i] = new unsigned int[stridesNo];
-        memset(results[i], 0, sizeof(unsigned int) * stridesNo);
+        memset(results[i], std::numeric_limits<unsigned int>::max(), sizeof(unsigned int) * stridesNo);
     }
     
     // ------------- actual evaluation is done here ------------
@@ -251,7 +252,7 @@ int main(int argc, char **argv)
                 CHECK_CUDA(cudaMemcpy(&myResult, data+pos, sizeof(unsigned int), cudaMemcpyDeviceToHost));
                 
                 // write result at the right csv position
-                results[ indexY ][ indexX ] += myResult;
+                results[ indexY ][ indexX ] = std::min(myResult, results[ indexY ][ indexX ]);
                 
                 indexY += steps / strideFromKB;
             }
@@ -274,7 +275,7 @@ int main(int argc, char **argv)
     for(unsigned int y = 0; y < stepsNo; y++){
         output << dataFromMB + (float)(y * strideFromKB)/1024 << ",";
         for(unsigned int x = 0; x < stridesNo; x++){
-            if (results[y][x] != 0) output << results[y][x]/iterations;
+            if (results[y][x] != std::numeric_limits<unsigned int>::max()) output << results[y][x];
             output << ",";
         }
         output << endl;
