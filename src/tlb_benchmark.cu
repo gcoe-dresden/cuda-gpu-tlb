@@ -209,7 +209,7 @@ int main(int argc, char **argv)
         memset(results[i], 0, sizeof(unsigned int) * stridesNo);
     }
     
-    // ------------- actual eveluation is done here ------------    
+    // ------------- actual evaluation is done here ------------
     
     // for each iteration
     for (unsigned int iter = 0; iter < iterations; iter++){
