@@ -34,7 +34,10 @@ if (length(args)==0) {
   stop("At least one argument must be supplied (input file).n", call.=FALSE)
 } 
 
-pdf(paste(args[1],".pdf"), pointsize=2, version="1.4", width=150*0.03937, height=100*0.03937)
+fpath<-sub("(.*\\/)([^.]+)(\\.[[:alnum:]]+$)", "\\1", args[1])
+fname<-sub("(.*\\/)([^.]+)(\\.[[:alnum:]]+$)", "\\2", args[1])
+cat("Plotting to ",fpath,fname, ".\n");
+cairo_pdf(paste0(fpath,"plot-",fname,".pdf"), pointsize=9, width=150*0.03937, height=100*0.03937)
 
 res <- readLines(args[1])
 mylabels <- unlist(strsplit(res[2], split=","))
@@ -45,6 +48,7 @@ plot(0,0,
 	xlim=c(min(mydata[, 1]), max(mydata[, 1])), 
 	main="", ylab="cycles", xlab="traversed data size (MB)", type="l",  las=1);
 
+grid (NULL,NULL, lty = 6, col = "cornsilk2")
 
 for (column in 2:length(mydata)-1){
 	x <- mydata[, 1];
@@ -52,7 +56,6 @@ for (column in 2:length(mydata)-1){
 	miss <- !is.na(y)
 	lines(x[miss],y[miss], type="l", col=column-1, lty=1, lwd=1);
 }
-
 myLegend <- paste0(mylabels[2:(length(mydata)-1)],c(rep("KB stride ", length(mydata)-2)));
 
 legend("top", horiz=TRUE, legend=myLegend, col=c(2:(length(mydata)-1))-1, lty=1);
