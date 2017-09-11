@@ -20,5 +20,16 @@ cmake -DCMAKE_C_COMPILER=`which gcc-4` -DCMAKE_CXX_COMPILER=`which g++-4` ..")
   endif()
 endif()
 
-cuda_add_executable(tlb-bench tlb_benchmark.cu)
-cuda_add_executable(tlb-sharing tlb_sharing.cu)
+option(CUDA_VERBOSE_PTXAS
+  "On to enable verbose output from the PTXAS assembler."
+  OFF
+  )
+if (CUDA_VERBOSE_PTXAS)
+  set(VERBOSE_PTXAS --ptxas-options=-v)
+endif (CUDA_VERBOSE_PTXAS)
+
+set(M_CUDA_ARCH "30" CACHE STRING "Target Compute Capability, e.g. '30' (Kepler) or '60' (Pascal).")
+set(GENCODE -arch=sm_${M_CUDA_ARCH})
+
+cuda_add_executable(tlb-bench tlb_benchmark.cu OPTIONS ${GENCODE} ${VERBOSE_PTXAS})
+cuda_add_executable(tlb-sharing tlb_sharing.cu OPTIONS ${GENCODE} ${VERBOSE_PTXAS})

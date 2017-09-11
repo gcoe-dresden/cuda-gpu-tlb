@@ -14,7 +14,7 @@ Go to the cuda-gpu-tlb directory (created by git clone ...):
 
 ```
 mkdir release && cd release
-cmake ..
+cmake -DM_CUDA_ARCH=30 .. # or cmake .. && ccmake . # to configure device code
 make -j 2
 ```
 
@@ -22,7 +22,7 @@ make -j 2
 
 ```
 $ ./tlb-bench 
-usage: ./tlb-bench data_from_MB data_to_MB stride_from_KB stride_to_KB Device_No=0
+usage: ./tlb-bench data_from_MB data_to_MB stride_from_KB stride_to_KB Device_No=0 min_instead_avg=0
 ```
 
 ### Test for the K80 - generates a CSV file 
@@ -57,8 +57,10 @@ Kepler and Pascal GPUs seem to work fine but we had some issues getting good res
 
 ```
 ./tlb-sharing 
-usage: ./tlb-sharing stride_KB iterations device_No=0
+usage: ./tlb-sharing stride_KB iterations device_No=0 min_instead_avg=0
 ```
+- `device_No` is your device ID
+- `min_instead_avg` uses minimum of the results of the benchmark iterations
 
 try:
 

@@ -25,13 +25,15 @@
  *
  */
 
-
+#include "helper.h"
 #include <stdio.h>
 #include <assert.h>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <vector>
-
+#include <limits>
+#include <algorithm>
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -41,6 +43,8 @@
 
 
 using namespace std;
+
+enum Metric { METRIC_AVG, METRIC_MIN };
 
 // --------------------------------- GPU Kernel ------------------------------
 
@@ -86,35 +90,15 @@ void tlb_latency_with_disruptor(unsigned int * hashtable,
 }
 
 
-// --------------------------------- support functions ------------------------------
-
-#ifndef CUDA_DISABLE_ERROR_CHECKING
-#define CHECK_CUDA(ans) check_cuda((ans), "", #ans, __FILE__, __LINE__)
-#define CHECK_LAST(msg) check_cuda(cudaGetLastError(), msg, "CHECK_LAST", __FILE__, __LINE__)
-#else
-#define CHECK_CUDA(ans) {}
-#define CHECK_LAST(msg) {}
-#endif
-
-inline
-void check_cuda(cudaError_t code, const char* msg, const char *func, const char *file, int line) {
-    if (code != cudaSuccess) {
-        cerr << "CUDA ERROR: " << cudaGetErrorString(code) << " in Line " << line << endl;
-        exit(code);
-    }
-}
-
-
-
 // --------------------------------- main part ------------------------------
 int main(int argc, char **argv)
 {
     unsigned int devNo = 0;
-    
+    Metric metric = METRIC_AVG;
     // ------------- handle inputs ------------
       
     if (argc < 3) {
-        cout << "usage: " << argv[0] << " stride_KB iterations device_No=0" << endl;
+        cerr << "usage: " << argv[0] << " stride_KB iterations device_No=0" << endl;
         return 0;
     }
 
@@ -124,7 +108,9 @@ int main(int argc, char **argv)
     if (argc > 3)
         devNo = atoi(argv[3]);
 
-    
+    if (argc > 4 && strcmp(argv[4],"1")==0)
+        metric = METRIC_MIN;
+
     // --------------- init CUDA ---------
     int devCount;
     int SMcount =  0;
@@ -132,7 +118,7 @@ int main(int argc, char **argv)
     
     // check Dev Count
     if (devNo >= devCount){
-        cout << "Can not choose Dev " << devNo << ", only " << devCount << " GPUs " << endl;
+        cerr << "Can not choose Dev " << devNo << ", only " << devCount << " GPUs " << endl;
         exit(0);
     }
     CHECK_CUDA(cudaSetDevice(devNo));
@@ -140,6 +126,7 @@ int main(int argc, char **argv)
     cudaDeviceProp props;
     CHECK_CUDA(cudaGetDeviceProperties(&props, devNo));
     cout << "#" << props.name << ": cuda " << props.major << "." << props.minor << endl;
+    cout << ", reduction mode: " << (metric == METRIC_MIN ? "min" : "avg") << endl;
     SMcount = props.multiProcessorCount;
 
 
@@ -196,12 +183,20 @@ int main(int argc, char **argv)
             
             // get needed cycles
             CHECK_CUDA(cudaMemcpy(hduration, hashtable+N+2, iterations*sizeof(unsigned), cudaMemcpyDeviceToHost));
-                    
-            double avgc=0;
-            for(int b=0; b<iterations;++b) {
-                avgc+=hduration[b];
+
+            if(metric==METRIC_AVG) {
+                double avgc=0;
+                for(int b=0; b<iterations;++b) {
+                    avgc+=hduration[b];
+                }
+                results[smid0][smxxx] =  avgc/iterations;
+            } else {
+                unsigned int minc=std::numeric_limits<unsigned int>::max();
+                for(int b=0; b<iterations;++b) {
+                    minc = std::min(hduration[b],minc);
+                }
+                results[smid0][smxxx] =  minc;
             }
-            results[smid0][smxxx] =  avgc;
         }
     }
     
@@ -213,15 +208,15 @@ int main(int argc, char **argv)
  
     cout << "#----------- absolute values ---------------" << endl;
  
-    cout << "# ";
+    cout << "#   ";
     for (unsigned int steps = 0; steps < SMcount; steps++)
-        cout << steps << " ";
+        cout << setfill('0') << setw(3) << steps << " ";
     cout << endl;    
     
     for(unsigned int y = 0; y < SMcount; y++){
-        cout << y << " ";
+        cout << setfill('0') << setw(3) << y << " ";
         for(unsigned int x = 0; x < SMcount; x++){
-            cout << (unsigned int) (results[y][x]/iterations);
+            cout << (unsigned int) (results[y][x]);
             cout << " ";
         }
         cout << endl;
@@ -229,27 +224,37 @@ int main(int argc, char **argv)
     
     cout << "#----------- which SMs share TLB ---------------" << endl;
     
-    cout << "# ";
+    cout << "#  ";
     for (unsigned int steps = 0; steps < SMcount; steps++)
-        cout << steps << " ";
+        cout << setfill('0') << setw(2) << steps << " ";
     cout << endl;    
     
     for(unsigned int y = 0; y < SMcount; y++){
-        cout << y << " ";
-        
+        cout << setfill('0') << setw(2) << y << " ";
+
         double avg = 0;
-        for(unsigned int x = 0; x < SMcount; x++)
-            avg += (results[y][x]/iterations);
+        for(unsigned int x = 0; x < SMcount; x++) {
+            avg += (results[y][x]);
+        }
         // build average and add some buffer
         avg = (avg / SMcount)+3;
-        
-        
-        //    cout << avg << endl;
-                
+
         for(unsigned int x = 0; x < SMcount; x++){
-            if (results[y][x]/iterations > avg) cout << ".X ";
-            else cout << ".. ";
+            if (results[y][x] > avg) {
+                double avgt = 0;
+                for(unsigned int xt = 0; xt < SMcount; xt++) {
+                    avgt += (results[x][xt]);
+                }
+                // build average and add some buffer
+                avgt = (avgt / SMcount)+3;
+                if (results[x][y] > avgt)
+                    cout << ".X ";
+                else
+                    cout << ".. ";
+            } else
+                cout << ".. ";
         }
+        cout << " [" << avg << "]";
         cout << endl;
     }
 
